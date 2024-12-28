@@ -1,41 +1,29 @@
-name: Docker Build and Save
+name: Build and Upload Docker Image
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  # 允许手动触发
-  workflow_dispatch:
+    branches:
+      - main
 
 jobs:
-  build-and-save:
+  build:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout code
+        uses: actions/checkout@v3
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-      
-      - name: Build with docker-compose
-        run: |
-          docker-compose build
-          
-      - name: Get current date
-        id: date
-        run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
-          
-      - name: Save Docker images
-        run: |
-          # 从 docker-compose.yml 提取镜像名称
-          IMAGES=$(grep "image:" docker-compose.yml | awk '{print $2}')
-          # 保存所有镜像到一个 tar 文件
-          docker save ${IMAGES} > docker-images-${{ steps.date.outputs.date }}.tar
-          
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image
+        run: docker-compose build
+
+      - name: Save Docker image to tar file
+        run: docker save -o my-app.tar my-app:latest
+
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: docker-images-${{ steps.date.outputs.date }}
-          path: docker-images-${{ steps.date.outputs.date }}.tar
-          retention-days: 30 # 保留 30 天
+          name: my-app-image
+          path: my-app.tar
