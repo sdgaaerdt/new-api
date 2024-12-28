@@ -17,7 +17,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       - name: Build Docker image
-        run: docker-compose build
+        run: docker compose build
 
       - name: Save Docker image to tar file
         run: docker save -o my-app.tar my-app:latest
