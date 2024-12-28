@@ -1,29 +1,50 @@
-name: Build and Upload Docker Image
+name: Docker Build and Archive
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  # 允许手动触发工作流
+  workflow_dispatch:
+
+env:
+  # 设置镜像名称
+  IMAGE_NAME: my-application
+  # 设置镜像标签
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Build Docker image
-        run: docker compose build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          # 不推送到 registry
+          push: false
 
-      - name: Save Docker image to tar file
-        run: docker save -o my-app.tar my-app:latest
+      - name: Save Docker image
+        run: |
+          # 将镜像保存为 tar 文件
+          docker save ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} > image.tar
+          # 压缩 tar 文件
+          gzip image.tar
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: my-app-image
-          path: my-app.tar
+          name: docker-image
+          path: image.tar.gz
+          # 设置保留期限为 30 天
+          retention-days: 30
